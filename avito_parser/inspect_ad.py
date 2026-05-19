@@ -15,12 +15,12 @@ async def main():
         await Stealth().apply_stealth_async(page)
         
         url = "https://www.avito.ru/ekaterinburg/kollektsionirovanie/lego_minifigurki_24_seriya_8159009639"
-        print(f"Перехожу на тестовое объявление: {url}")
+        print(f"Переход на тестовое объявление: {url}")
         
         await page.goto(url, wait_until="domcontentloaded")
-        await asyncio.sleep(5) # Ждем прогрузки
+        await asyncio.sleep(5)  # Ожидание полной загрузки
         
-        # Сохраняем HTML для анализа
+        # Сохранение HTML для анализа
         content = await page.content()
         with open("ad_structure.html", "w", encoding="utf-8") as f:
             f.write(content)

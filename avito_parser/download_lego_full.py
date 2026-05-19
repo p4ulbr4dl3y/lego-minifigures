@@ -26,9 +26,9 @@ async def download_image(url, folder, filename):
     return None
 
 async def process_ad(page, ad_url, ad_title, base_folder, ad_index):
-    print(f"   --> Захожу в: {ad_title}")
+    print(f"   Переход в объявление: {ad_title}")
     
-    # Создаем папку для объявления
+    # Создание папки для объявления
     folder_name = "".join([c for c in ad_title if c.isalnum() or c == ' ']).strip()[:40]
     ad_folder = os.path.join(base_folder, f"ad_{ad_index}_{folder_name}")
     os.makedirs(ad_folder, exist_ok=True)
@@ -37,24 +37,24 @@ async def process_ad(page, ad_url, ad_title, base_folder, ad_index):
         await page.goto(ad_url, wait_until="domcontentloaded", timeout=60000)
         await human_delay(2, 4)
         
-        # Проверка на блок внутри объявления
+        # Проверка на блокировку внутри объявления
         if "Доступ ограничен" in await page.title():
-            print("      !!! Блокировка внутри объявления. Ждем...")
+            print("      Блокировка внутри объявления. Ожидание...")
             await asyncio.sleep(10)
             await page.reload(wait_until="domcontentloaded")
 
-        # Ищем миниатюры
+        # Поиск миниатюр
         thumbnails = await page.query_selector_all('[data-marker="image-preview/item"]')
         img_urls = set()
 
         if not thumbnails:
-            # Одиночное фото
+            # Одиночная фотография
             main_img = await page.query_selector('[data-marker="image-frame/image-wrapper"] img')
             if main_img:
                 src = await main_img.get_attribute("src")
                 if src: img_urls.add(src)
         else:
-            # Прокликиваем первые 5-7 фото (чтобы не затягивать, если их 40)
+            # Обработка первых 5-7 фотографий (ограничение для ускорения)
             for idx, thumb in enumerate(thumbnails[:8]):
                 try:
                     await thumb.click()
@@ -70,7 +70,7 @@ async def process_ad(page, ad_url, ad_title, base_folder, ad_index):
                 except:
                     continue
 
-        print(f"      Найдено фото: {len(img_urls)}. Скачиваю...")
+        print(f"      Найдено фотографий: {len(img_urls)}. Скачивание...")
         for j, img_url in enumerate(img_urls):
             await download_image(img_url, ad_folder, f"photo_{j+1}")
             
@@ -104,7 +104,7 @@ async def main():
             await page.goto(page_url, wait_until="domcontentloaded")
             await human_delay(3, 5)
             
-            # Ждем объявлений
+            # Ожидание загрузки объявлений
             try:
                 await page.wait_for_selector('[data-marker="item"]', timeout=30000)
                 items = await page.query_selector_all('[data-marker="item"]')
@@ -119,18 +119,18 @@ async def main():
                 
                 print(f"Найдено {len(ads_on_page)} объявлений на странице {p_num}.")
                 
-                # Обрабатываем каждое объявление
+                # Обработка каждого объявления
                 for ad in ads_on_page:
                     await process_ad(page, ad['url'], ad['title'], base_folder, global_ad_counter)
                     global_ad_counter += 1
-                    # Пауза между объявлениями
+                    # Задержка между объявлениями
                     await human_delay(2, 5)
                     
             except Exception as e:
                 print(f"Ошибка на странице поиска {p_num}: {e}")
                 await page.screenshot(path=f"error_p{p_num}.png")
 
-        print(f"\nПарсинг завершен! Всего обработано объявлений: {global_ad_counter-1}")
+        print(f"\nПарсинг завершен. Всего обработано объявлений: {global_ad_counter-1}")
         await asyncio.sleep(5)
         await context.close()
 

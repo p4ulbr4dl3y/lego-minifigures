@@ -8,7 +8,7 @@ from mlx_vlm.models.sam3.processing_sam3 import Sam3Processor
 
 class Sam3Inference:
     def __init__(self, model_id="mlx-community/sam3-4bit", threshold=0.5):
-        print(f"Loading SAM3 model: {model_id}...")
+        print(f"Загрузка модели SAM3: {model_id}...")
         model_path = get_model_path(model_id)
         sam_model = load_model(model_path)
         sam_processor = Sam3Processor.from_pretrained(str(model_path))
@@ -16,7 +16,7 @@ class Sam3Inference:
         self.prompt = "lego minifigure"
 
     def predict(self, image_path):
-        # Apply exif_transpose to handle rotated photos correctly
+        # Применение exif_transpose для корректной обработки повернутых фотографий
         image_pil = Image.open(image_path).convert("RGB")
         image_pil = ImageOps.exif_transpose(image_pil)
         W, H = image_pil.size
@@ -29,19 +29,19 @@ class Sam3Inference:
             mask = result.masks[i]
             score = float(result.scores[i])
             
-            # Use rounding for better alignment with pixels
+            # Округление для точного выравнивания по пикселям
             x1, y1, x2, y2 = [int(round(x)) for x in box]
             x1_c, y1_c = max(0, x1), max(0, y1)
             x2_c, y2_c = min(W, x2), min(H, y2)
             
-            # Ensure width/height are at least 1
+            # Проверка, что ширина и высота не менее 1
             if x2_c <= x1_c or y2_c <= y1_c:
                 continue
 
             crop_pil = image_pil.crop((x1_c, y1_c, x2_c, y2_c))
             crop_np = np.array(crop_pil)
             
-            # Match mask to image size
+            # Приведение маски к размеру изображения
             mh, mw = mask.shape
             if (mw, mh) != (W, H):
                 mask_pil = Image.fromarray(mask.astype(np.uint8) * 255).resize((W, H), resample=Image.NEAREST)
@@ -49,10 +49,10 @@ class Sam3Inference:
             else:
                 mask_full = mask > 0
             
-            # Slice mask exactly as we cropped the image
+            # Обрезка маски аналогично обрезке изображения
             obj_mask = mask_full[y1_c:y2_c, x1_c:x2_c]
             
-            # Final check to match crop_np exactly (should already match)
+            # Финальная проверка совпадения размеров с обрезкой
             ch, cw = crop_np.shape[:2]
             if obj_mask.shape != (ch, cw):
                 obj_mask = np.array(Image.fromarray(obj_mask.astype(np.uint8) * 255).resize((cw, ch), resample=Image.NEAREST)) > 0
@@ -67,10 +67,10 @@ class Sam3Inference:
                 "crop": crop_pil,
                 "white_bg_crop": white_bg_crop_pil,
                 "normalized_box": [
-                    (x1_c + x2_c) / (2 * W), # xc
-                    (y1_c + y2_c) / (2 * H), # yc
-                    (x2_c - x1_c) / W,       # w
-                    (y2_c - y1_c) / H        # h
+                    (x1_c + x2_c) / (2 * W),  # центр x
+                    (y1_c + y2_c) / (2 * H),  # центр y
+                    (x2_c - x1_c) / W,        # ширина
+                    (y2_c - y1_c) / H          # высота
                 ]
             })
             

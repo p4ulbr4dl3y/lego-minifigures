@@ -8,8 +8,8 @@ async def human_delay(min_sec=2, max_sec=5):
 
 async def main():
     async with async_playwright() as p:
-        # Пытаемся найти установленный Chrome, он вызывает меньше подозрений
-        # Если Chrome не установлен, playwright будет использовать свой chromium
+        # Попытка использовать установленный Chrome - он вызывает меньше подозрений.
+        # Если Chrome не установлен, Playwright использует встроенный Chromium
         browser_args = [
             "--disable-blink-features=AutomationControlled",
             "--no-sandbox",
@@ -17,13 +17,13 @@ async def main():
             "--window-size=1920,1080",
         ]
         
-        # Используем временную папку для профиля, чтобы сохранять куки
+        # Временная папка для профиля с сохранением cookie
         user_data_dir = "./avito_user_data"
         
         print("Запуск браузера с имитацией реального профиля...")
         context = await p.chromium.launch_persistent_context(
             user_data_dir,
-            headless=True, # Поставим True для начала, но если не выйдет - попросим пользователя запустить с False
+            headless=True,  # При неудаче - переключить на False для ручного прохождения проверок
             args=browser_args,
             user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
             viewport={'width': 1920, 'height': 1080},
@@ -34,26 +34,26 @@ async def main():
         page = await context.new_page()
         await Stealth().apply_stealth_async(page)
         
-        # Сначала зайдем на google, чтобы был "реферер"
-        print("Заходим на Google для прогрева...")
+        # Предварительный переход на Google для формирования реферера
+        print("Переход на Google для формирования реферера...")
         await page.goto("https://www.google.com")
         await human_delay(1, 2)
         
-        print("Переходим на Avito...")
-        # Переходим не сразу на поиск, а на главную
+        print("Переход на Avito...")
+        # Переход на главную страницу вместо прямого перехода к поиску
         await page.goto("https://www.avito.ru", wait_until="domcontentloaded")
         
-        # Имитируем небольшое ожидание и скролл
+        # Имитация пользовательского ожидания
         await human_delay(3, 6)
         
         title = await page.title()
         print(f"Заголовок страницы: {title}")
         
-        # Если заголовок все еще плохой, попробуем сделать скриншот
+        # Скриншот для проверки состояния страницы
         await page.screenshot(path="avito_retry_screenshot.png")
         
         if "Доступ ограничен" in title:
-            print("!!! Все еще блокировка по IP. Пробуем зайти на страницу товара напрямую через 5 секунд...")
+            print("Сохраняется блокировка по IP. Попытка прямого перехода на страницу товара через 5 секунд...")
             await human_delay(5, 7)
             await page.goto("https://www.avito.ru/moskva/avtomobili", wait_until="domcontentloaded")
             await page.screenshot(path="avito_cars_screenshot.png")

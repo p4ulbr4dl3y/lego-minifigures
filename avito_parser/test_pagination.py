@@ -21,10 +21,10 @@ async def test_pagination():
         page = await context.new_page()
         await Stealth().apply_stealth_async(page)
         
-        # Базовый URL (без номера страницы)
+        # Базовый URL без номера страницы
         base_url = "https://www.avito.ru/moskva/kollektsionirovanie?q=lego+%D0%BC%D0%B8%D0%BD%D0%B8%D1%84%D0%B8%D0%B3%D1%83%D1%80%D0%BA%D0%B8"
         
-        for p_num in [1, 2]: # Проверим 1-ю и 2-ю страницы
+        for p_num in [1, 2]:  # Проверка 1-й и 2-й страниц
             target_url = f"{base_url}&p={p_num}"
             print(f"\n--- Переход на страницу {p_num} ---")
             print(f"URL: {target_url}")
@@ -45,7 +45,7 @@ async def test_pagination():
             
             await page.screenshot(path=f"pagination_p{p_num}.png")
             
-        print("\nТест завершен. Закрываю браузер через 5 секунд...")
+        print("\nТест завершен. Закрытие браузера через 5 секунд...")
         await asyncio.sleep(5)
         await context.close()
 

@@ -12,7 +12,7 @@ from PIL import Image, ImageOps
 
 from sam_inference import Sam3Inference
 
-# --- Persistence ---
+# --- Персистентность ---
 DB_PATH = "labeler_app/processed.json"
 
 def load_processed():
@@ -31,9 +31,9 @@ def save_processed(processed_set):
     with open(DB_PATH, "w") as f:
         json.dump(list(processed_set), f)
 
-# --- Background Worker ---
+# --- Фоновый обработчик ---
 class SamWorker(QThread):
-    result_ready = Signal(dict) # Contains {path, objects, w, h}
+    result_ready = Signal(dict)  # Содержит {path, objects, w, h}
     progress = Signal(str)
 
     def __init__(self, image_paths):
@@ -47,7 +47,7 @@ class SamWorker(QThread):
         for path in self.image_paths:
             if not self._is_running:
                 break
-            self.progress.emit(f"Processing {os.path.basename(path)}...")
+            self.progress.emit(f"Обработка {os.path.basename(path)}...")
             try:
                 objects, w, h = self.sam.predict(path)
                 if not self._is_running:
@@ -59,7 +59,7 @@ class SamWorker(QThread):
                     "h": h
                 })
             except Exception as e:
-                print(f"Error processing {path}: {e}")
+                print(f"Ошибка обработки {path}: {e}")
 
     def stop(self):
         self._is_running = False
@@ -74,15 +74,15 @@ class LegoLabeler(QMainWindow):
         self.pending_images = [p for p in all_images if p not in self.processed]
         self.total_images = len(all_images)
         
-        # State for current image
-        self.current_data = None # {path, objects, w, h}
-        self.current_idx = 0     # object index within image
-        self.labels = {}         # idx -> label
-        self.queue = []          # Queue of processed data from worker
+        # Состояние текущего изображения
+        self.current_data = None  # {path, objects, w, h}
+        self.current_idx = 0     # индекс объекта внутри изображения
+        self.labels = {}         # idx -> метка
+        self.queue = []          # очередь обработанных данных из фонового потока
 
         self.setup_ui()
         
-        # Start Worker
+        # Запуск фонового обработчика
         self.worker = SamWorker(self.pending_images)
         self.worker.result_ready.connect(self.on_data_ready)
         self.worker.progress.connect(lambda msg: self.info_label.setText(f"Worker: {msg}"))
@@ -95,13 +95,13 @@ class LegoLabeler(QMainWindow):
         self.setCentralWidget(central_widget)
         main_layout = QHBoxLayout(central_widget)
 
-        # Left side
+        # Левая панель
         left_layout = QVBoxLayout()
         self.scene = QGraphicsScene()
         self.view = QGraphicsView(self.scene)
         self.view.setMinimumWidth(800)
         self.view.setFocusPolicy(Qt.NoFocus)
-        left_layout.addWidget(QLabel("Full Image Context"))
+        left_layout.addWidget(QLabel("Контекст изображения"))
         left_layout.addWidget(self.view)
         
         self.progress_bar = QProgressBar()
@@ -110,9 +110,9 @@ class LegoLabeler(QMainWindow):
         left_layout.addWidget(self.progress_bar)
         main_layout.addLayout(left_layout, 2)
 
-        # Right side
+        # Правая панель
         right_layout = QVBoxLayout()
-        right_layout.addWidget(QLabel("Current Candidate:"))
+        right_layout.addWidget(QLabel("Текущий кандидат:"))
         self.crop_label = QLabel()
         self.crop_label.setFixedSize(400, 400)
         self.crop_label.setFrameShape(QFrame.StyledPanel)
@@ -122,13 +122,13 @@ class LegoLabeler(QMainWindow):
         info_frame = QFrame()
         info_frame.setFrameShape(QFrame.StyledPanel)
         info_layout = QVBoxLayout(info_frame)
-        self.info_label = QLabel("Waiting for SAM3...")
+        self.info_label = QLabel("Ожидание SAM3...")
         self.img_info_label = QLabel("")
         self.stats_label = QLabel("")
         info_layout.addWidget(self.info_label)
         info_layout.addWidget(self.img_info_label)
         info_layout.addWidget(self.stats_label)
-        info_layout.addWidget(QLabel("\n[J] Minifigure\n[K] Not Minifigure\n[<- / ->] Navigate"))
+        info_layout.addWidget(QLabel("\n[J] Минифигурка\n[K] Не минифигурка\n[<- / ->] Навигация"))
         
         right_layout.addWidget(info_frame)
         right_layout.addStretch()
@@ -146,14 +146,14 @@ class LegoLabeler(QMainWindow):
     def load_next_image_from_queue(self):
         if not self.queue:
             self.current_data = None
-            self.info_label.setText("No more images in queue. Processing...")
+            self.info_label.setText("Очередь пуста. Обработка...")
             return
 
         self.current_data = self.queue.pop(0)
         
-        # Auto-skip images with no objects
+        # Автоматический пропуск изображений без объектов
         if not self.current_data["objects"]:
-            print(f"No objects found in {self.current_data['path']}. Logging and skipping.")
+            print(f"Объекты не найдены в {self.current_data['path']}. Пропуск.")
             with open("labeler_app/problematic_images.txt", "a") as f:
                 f.write(self.current_data["path"] + "\n")
             self.processed.add(self.current_data["path"])
@@ -164,7 +164,7 @@ class LegoLabeler(QMainWindow):
         self.current_idx = 0
         self.labels = {}
         
-        # Load Main Image
+        # Загрузка основного изображения
         image_pil = Image.open(self.current_data["path"]).convert("RGB")
         image_pil = ImageOps.exif_transpose(image_pil)
         qimg = self.pil_to_qimage(image_pil)
@@ -182,7 +182,7 @@ class LegoLabeler(QMainWindow):
 
     def update_display(self):
         if not self.current_data or not self.current_data["objects"]:
-            self.img_info_label.setText("No objects found in this image.")
+            self.img_info_label.setText("Объекты на изображении не найдены.")
             return
 
         obj = self.current_data["objects"][self.current_idx]
@@ -193,12 +193,12 @@ class LegoLabeler(QMainWindow):
         qimg = self.pil_to_qimage(crop_pil)
         self.crop_label.setPixmap(QPixmap.fromImage(qimg).scaled(400, 400, Qt.KeepAspectRatio))
 
-        status = self.labels.get(self.current_idx, "Unlabeled")
-        self.img_info_label.setText(f"Image: {os.path.basename(self.current_data['path'])}\n"
-                                   f"Object: {self.current_idx + 1} / {len(self.current_data['objects'])}\n"
-                                   f"Status: {status}")
+        status = self.labels.get(self.current_idx, "Не размечено")
+        self.img_info_label.setText(f"Изображение: {os.path.basename(self.current_data['path'])}\n"
+                                   f"Объект: {self.current_idx + 1} / {len(self.current_data['objects'])}\n"
+                                   f"Статус: {status}")
         
-        self.stats_label.setText(f"Total Processed: {len(self.processed)} / {self.total_images}")
+        self.stats_label.setText(f"Обработано: {len(self.processed)} / {self.total_images}")
         self.progress_bar.setValue(len(self.processed))
 
     def pil_to_qimage(self, pil_img):
@@ -245,7 +245,7 @@ class LegoLabeler(QMainWindow):
         name = os.path.splitext(os.path.basename(path))[0]
         num_objs = len(self.current_data["objects"])
 
-        # Classification
+        # Классификация
         for idx, label in self.labels.items():
             if idx >= num_objs: continue
             obj = self.current_data["objects"][idx]
@@ -254,7 +254,7 @@ class LegoLabeler(QMainWindow):
             os.makedirs(save_dir, exist_ok=True)
             obj["white_bg_crop"].save(f"{save_dir}/{name}_obj{idx}.jpg")
 
-        # YOLO
+        # Формат YOLO
         yolo_lines = []
         for idx, label in self.labels.items():
             if idx < num_objs and label == "minifigure":
@@ -272,11 +272,11 @@ class LegoLabeler(QMainWindow):
                 f.write("\n".join(yolo_lines))
 
     def closeEvent(self, event):
-        print("Closing application...")
+        print("Завершение работы приложения...")
         if self.worker.isRunning():
             self.worker.stop()
             self.worker.quit()
-            self.worker.wait(2000) # Wait up to 2s
+            self.worker.wait(2000)  # Ожидание до 2 секунд
             if self.worker.isRunning():
                 self.worker.terminate()
         event.accept()

@@ -8,7 +8,7 @@ from playwright_stealth import Stealth
 async def download_image(url, folder, filename):
     if not url: return
     try:
-        # Очистка имени файла от запрещенных символов
+        # Удаление запрещенных символов из имени файла
         clean_filename = "".join([c for c in filename if c.isalnum() or c in (' ', '.', '_', '-')]).strip()
         clean_filename = f"{clean_filename[:100]}.jpg"
         filepath = os.path.join(folder, clean_filename)
@@ -44,37 +44,37 @@ async def main():
         
         url = "https://www.avito.ru/moskva/kollektsionirovanie?cd=1&q=lego+%D0%BC%D0%B8%D0%BD%D0%B8%D1%84%D0%B8%D0%B3%D1%83%D1%80%D0%BA%D0%B8"
         
-        print(f"Переходим на Avito...")
+        print("Переход на Avito...")
         await page.goto(url, wait_until="domcontentloaded")
         
         try:
-            print("Ожидаю появления объявлений (пройдите капчу, если она есть)...")
+            print("Ожидание появления объявлений. При наличии капчи - пройдите её вручную.")
             await page.wait_for_selector('[data-marker="item"]', timeout=60000)
             
-            # Прокрутка вниз для подгрузки всех фото (Lazy Load)
-            print("Прокручиваю страницу для загрузки изображений...")
+            # Прокрутка вниз для подгрузки всех фотографий
+            print("Прокрутка страницы для загрузки изображений...")
             for i in range(10):
                 await page.mouse.wheel(0, 500)
                 await asyncio.sleep(0.5)
             
-            # Возвращаемся в начало, чтобы убедиться, что все DOM-элементы на месте
+            # Возврат в начало страницы для проверки наличия всех DOM-элементов
             await page.evaluate("window.scrollTo(0, 0)")
             await asyncio.sleep(1)
 
             items = await page.query_selector_all('[data-marker="item"]')
-            print(f"Найдено объявлений: {len(items)}. Начинаю скачивание...")
+            print(f"Найдено объявлений: {len(items)}. Скачивание...")
             
             downloaded = 0
             for i, item in enumerate(items):
                 try:
                     title_elem = await item.query_selector('[data-marker="item-title"]')
-                    # Находим все картинки внутри айтема и берем первую подходящую
+                    # Поиск всех изображений внутри элемента и выбор первого подходящего
                     img_elems = await item.query_selector_all('img')
                     
                     if title_elem and img_elems:
                         name = await title_elem.inner_text()
                         
-                        # Ищем реальный URL (иногда он в src, иногда в data-src)
+                        # Поиск реального URL изображения (src или data-src)
                         img_url = None
                         for img in img_elems:
                             src = await img.get_attribute("src")
@@ -83,8 +83,8 @@ async def main():
                                 break
                         
                         if img_url:
-                            # Пытаемся получить картинку покрупнее (заменяем превью на больший размер в URL, если возможно)
-                            # У Avito в URL обычно есть /640x480/ или /208x156/
+                            # Попытка получить изображение большего размера
+                            # В URL Avito обычно присутствует /640x480/ или /208x156/
                             # img_url = img_url.replace('208x156', '640x480') 
                             
                             res = await download_image(img_url, img_folder, f"{i+1}_{name}")
@@ -95,7 +95,7 @@ async def main():
                 except:
                     continue
             
-            print(f"\nУспех! Всего скачано: {downloaded} фото.")
+            print(f"\nСкачивание завершено. Всего загружено: {downloaded} фотографий.")
             print(f"Путь к папке: {os.path.abspath(img_folder)}")
             
         except Exception as e:

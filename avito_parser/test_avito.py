@@ -13,16 +13,16 @@ async def main():
         )
         page = await context.new_page()
         
-        # Stealth for webkit might not be supported well by playwright-stealth
-        # but let's see if the device emulation is enough
+        # playwright-stealth может работать нестабильно с WebKit,
+        # но эмуляция устройства может оказаться достаточной
         
-        print("Перехожу на m.avito.ru...")
+        print("Переход на m.avito.ru...")
         await page.goto("https://m.avito.ru/moskva/avtomobili", wait_until="networkidle")
         
         title = await page.title()
         print(f"Заголовок страницы: {title}")
         
-        # Делаем скриншот для проверки
+        # Сохранение скриншота для проверки
         await page.screenshot(path="avito_mobile_screenshot.png")
         print("Скриншот сохранен в avito_mobile_screenshot.png")
         
