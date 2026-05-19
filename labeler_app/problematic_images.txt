@@ -1,0 +1,11 @@
+/Users/yegor/lego-dataset/avito_parser/lego_full_images/ad_11_Lego минифигурки Harry Potter/photo_2.jpg
+/Users/yegor/lego-dataset/avito_parser/lego_full_images/ad_12_Незабываемый подарок  рамочка с минифигу/photo_4.jpg
+/Users/yegor/lego-dataset/avito_parser/lego_full_images/ad_12_Незабываемый подарок  рамочка с минифигу/photo_7.jpg
+/Users/yegor/lego-dataset/avito_parser/lego_full_images/ad_14_Lego минифигурки и части минифигурок/photo_2.jpg
+/Users/yegor/lego-dataset/avito_parser/lego_full_images/ad_18_Лего рамка для Формулы1/photo_1.jpg
+/Users/yegor/lego-dataset/avito_parser/lego_full_images/ad_18_Лего рамка для Формулы1/photo_2.jpg
+/Users/yegor/lego-dataset/avito_parser/lego_full_images/ad_18_Лего рамка для Формулы1/photo_3.jpg
+/Users/yegor/lego-dataset/avito_parser/lego_full_images/ad_18_Лего рамка для Формулы1/photo_4.jpg
+/Users/yegor/lego-dataset/avito_parser/lego_full_images/ad_18_Лего рамка для Формулы1/photo_5.jpg
+/Users/yegor/lego-dataset/avito_parser/lego_full_images/ad_18_Лего рамка для Формулы1/photo_7.jpg
+/Users/yegor/lego-dataset/avito_parser/lego_full_images/ad_18_Лего рамка для Формулы1/photo_8.jpg
