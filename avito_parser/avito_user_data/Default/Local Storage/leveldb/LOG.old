@@ -1,0 +1,17 @@
+2026/05/19-19:39:39.056 166650 Reusing MANIFEST /Users/yegor/lego-dataset/avito_parser/avito_user_data/Default/Local Storage/leveldb/MANIFEST-000001
+2026/05/19-19:39:39.058 166650 Recovering log #16
+2026/05/19-19:39:39.058 166650 Level-0 table #19: started
+2026/05/19-19:39:39.062 166650 Level-0 table #19: 59860 bytes OK
+2026/05/19-19:39:39.063 166650 Delete type=0 #16
+2026/05/19-19:39:39.063 166654 Compacting 4@0 + 1@1 files
+2026/05/19-19:39:39.066 166654 Generated table #21@0: 35 keys, 61066 bytes
+2026/05/19-19:39:39.066 166654 Compacted 4@0 + 1@1 files => 61066 bytes
+2026/05/19-19:39:39.066 166654 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/05/19-19:39:39.067 166654 Delete type=2 #14
+2026/05/19-19:39:39.067 166654 Delete type=2 #17
+2026/05/19-19:39:39.067 166654 Delete type=2 #11
+2026/05/19-19:39:39.067 166654 Delete type=2 #8
+2026/05/19-19:39:39.067 166654 Delete type=2 #19
+2026/05/19-19:39:57.643 166650 Level-0 table #23: started
+2026/05/19-19:39:57.649 166650 Level-0 table #23: 61668 bytes OK
+2026/05/19-19:39:57.652 166650 Delete type=0 #20

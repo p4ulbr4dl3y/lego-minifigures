@@ -1,0 +1,25 @@
+2026/05/19-19:39:40.461 1665fc Reusing MANIFEST /Users/yegor/lego-dataset/avito_parser/avito_user_data/Default/IndexedDB/https_www.avito.ru_0.indexeddb.leveldb/MANIFEST-000001
+2026/05/19-19:39:40.461 1665fc Recovering log #39
+2026/05/19-19:39:40.461 1665fc Reusing old log /Users/yegor/lego-dataset/avito_parser/avito_user_data/Default/IndexedDB/https_www.avito.ru_0.indexeddb.leveldb/000039.log 
+2026/05/19-19:39:40.462 1665fc Delete type=2 #38
+2026/05/19-19:39:40.987 1665fe Level-0 table #44: started
+2026/05/19-19:39:40.988 1665fe Level-0 table #44: 1068 bytes OK
+2026/05/19-19:39:40.990 1665fe Delete type=0 #39
+2026/05/19-19:39:40.990 1665fb Manual compaction at level-0 from '\x00\x17\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x18\x00\x00\x00' @ 0 : 0; will stop at '\x00\x17\x00\x00\x05' @ 883 : 1
+2026/05/19-19:39:40.990 1665fb Compacting 1@0 + 1@1 files
+2026/05/19-19:39:40.991 1665fb Generated table #45@0: 302 keys, 4383 bytes
+2026/05/19-19:39:40.991 1665fb Compacted 1@0 + 1@1 files => 4383 bytes
+2026/05/19-19:39:40.992 1665fb compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/05/19-19:39:40.992 1665fb Delete type=2 #44
+2026/05/19-19:39:40.992 1665fb Manual compaction at level-0 from '\x00\x17\x00\x00\x05' @ 883 : 1 .. '\x00\x18\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/05/19-19:39:47.076 1665fb Level-0 table #47: started
+2026/05/19-19:39:47.078 1665fb Level-0 table #47: 929 bytes OK
+2026/05/19-19:39:47.079 1665fb Delete type=0 #43
+2026/05/19-19:39:47.079 1665fb Delete type=2 #41
+2026/05/19-19:39:47.080 1665fb Manual compaction at level-0 from '\x00\x18\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x19\x00\x00\x00' @ 0 : 0; will stop at '\x00\x18\x00\x00\x05' @ 914 : 1
+2026/05/19-19:39:47.080 1665fb Compacting 1@0 + 1@1 files
+2026/05/19-19:39:47.081 1665fb Generated table #48@0: 303 keys, 4390 bytes
+2026/05/19-19:39:47.081 1665fb Compacted 1@0 + 1@1 files => 4390 bytes
+2026/05/19-19:39:47.082 1665fb compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/05/19-19:39:47.082 1665fb Delete type=2 #47
+2026/05/19-19:39:47.082 1665fb Manual compaction at level-0 from '\x00\x18\x00\x00\x05' @ 914 : 1 .. '\x00\x19\x00\x00\x00' @ 0 : 0; will stop at (end)

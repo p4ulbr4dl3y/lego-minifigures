@@ -1,0 +1,65 @@
+2026/05/19-21:46:21.720 169a6f Reusing MANIFEST /Users/yegor/lego-dataset/avito_parser/avito_user_data/Default/Local Storage/leveldb/MANIFEST-000001
+2026/05/19-21:46:21.723 169a6f Recovering log #22
+2026/05/19-21:46:21.723 169a6f Level-0 table #25: started
+2026/05/19-21:46:21.726 169a6f Level-0 table #25: 60934 bytes OK
+2026/05/19-21:46:21.728 169a6f Delete type=0 #22
+2026/05/19-21:47:21.733 169a73 Level-0 table #28: started
+2026/05/19-21:47:21.739 169a73 Level-0 table #28: 61736 bytes OK
+2026/05/19-21:47:21.742 169a73 Delete type=0 #26
+2026/05/19-21:50:18.364 169a73 Level-0 table #30: started
+2026/05/19-21:50:18.374 169a73 Level-0 table #30: 60465 bytes OK
+2026/05/19-21:50:18.376 169a73 Delete type=0 #27
+2026/05/19-21:50:18.377 169a73 Compacting 4@0 + 1@1 files
+2026/05/19-21:50:18.381 169a73 Generated table #31@0: 47 keys, 61886 bytes
+2026/05/19-21:50:18.381 169a73 Compacted 4@0 + 1@1 files => 61886 bytes
+2026/05/19-21:50:18.382 169a73 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/05/19-21:50:18.383 169a73 Delete type=2 #28
+2026/05/19-21:50:18.383 169a73 Delete type=2 #21
+2026/05/19-21:50:18.383 169a73 Delete type=2 #23
+2026/05/19-21:50:18.383 169a73 Delete type=2 #25
+2026/05/19-21:50:18.383 169a73 Delete type=2 #30
+2026/05/19-21:52:14.687 169a73 Level-0 table #33: started
+2026/05/19-21:52:14.692 169a73 Level-0 table #33: 60662 bytes OK
+2026/05/19-21:52:14.696 169a73 Delete type=0 #29
+2026/05/19-21:54:11.388 169a73 Level-0 table #35: started
+2026/05/19-21:54:11.400 169a73 Level-0 table #35: 61074 bytes OK
+2026/05/19-21:54:11.402 169a73 Delete type=0 #32
+2026/05/19-21:56:08.379 169a73 Level-0 table #37: started
+2026/05/19-21:56:08.385 169a73 Level-0 table #37: 61473 bytes OK
+2026/05/19-21:56:08.387 169a73 Delete type=0 #34
+2026/05/19-21:58:05.628 169a73 Level-0 table #39: started
+2026/05/19-21:58:05.633 169a73 Level-0 table #39: 61647 bytes OK
+2026/05/19-21:58:05.638 169a73 Delete type=0 #36
+2026/05/19-21:58:05.640 169a73 Compacting 4@0 + 1@1 files
+2026/05/19-21:58:05.644 169a73 Generated table #40@0: 91 keys, 64064 bytes
+2026/05/19-21:58:05.644 169a73 Compacted 4@0 + 1@1 files => 64064 bytes
+2026/05/19-21:58:05.645 169a73 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/05/19-21:58:05.646 169a73 Delete type=2 #39
+2026/05/19-21:58:05.646 169a73 Delete type=2 #35
+2026/05/19-21:58:05.646 169a73 Delete type=2 #37
+2026/05/19-21:58:05.646 169a73 Delete type=2 #33
+2026/05/19-21:58:05.646 169a73 Delete type=2 #31
+2026/05/19-22:00:03.239 169a73 Level-0 table #42: started
+2026/05/19-22:00:03.246 169a73 Level-0 table #42: 62201 bytes OK
+2026/05/19-22:00:03.249 169a73 Delete type=0 #38
+2026/05/19-22:02:01.596 169a73 Level-0 table #44: started
+2026/05/19-22:02:01.602 169a73 Level-0 table #44: 62906 bytes OK
+2026/05/19-22:02:01.606 169a73 Delete type=0 #41
+2026/05/19-22:03:59.931 169a73 Level-0 table #46: started
+2026/05/19-22:03:59.945 169a73 Level-0 table #46: 62769 bytes OK
+2026/05/19-22:03:59.947 169a73 Delete type=0 #43
+2026/05/19-22:05:58.271 169a73 Level-0 table #48: started
+2026/05/19-22:05:58.276 169a73 Level-0 table #48: 62745 bytes OK
+2026/05/19-22:05:58.278 169a73 Delete type=0 #45
+2026/05/19-22:05:58.279 169a73 Compacting 4@0 + 1@1 files
+2026/05/19-22:05:58.284 169a73 Generated table #49@0: 134 keys, 65901 bytes
+2026/05/19-22:05:58.284 169a73 Compacted 4@0 + 1@1 files => 65901 bytes
+2026/05/19-22:05:58.286 169a73 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/05/19-22:05:58.286 169a73 Delete type=2 #48
+2026/05/19-22:05:58.286 169a73 Delete type=2 #42
+2026/05/19-22:05:58.286 169a73 Delete type=2 #40
+2026/05/19-22:05:58.286 169a73 Delete type=2 #44
+2026/05/19-22:05:58.286 169a73 Delete type=2 #46
+2026/05/19-22:07:41.508 169a73 Level-0 table #51: started
+2026/05/19-22:07:41.511 169a73 Level-0 table #51: 63207 bytes OK
+2026/05/19-22:07:41.513 169a73 Delete type=0 #47
