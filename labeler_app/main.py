@@ -1,128 +1,215 @@
 import sys
 import os
 import shutil
+import json
+from queue import Queue
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                              QHBoxLayout, QLabel, QGraphicsView, QGraphicsScene, 
-                             QGraphicsPixmapItem, QGraphicsRectItem, QFrame)
+                             QGraphicsPixmapItem, QGraphicsRectItem, QFrame, QProgressBar)
 from PySide6.QtGui import QPixmap, QImage, QKeyEvent, QColor, QPen
-from PySide6.QtCore import Qt, QSize
+from PySide6.QtCore import Qt, QSize, QThread, Signal, Slot
 from PIL import Image, ImageOps
 
 from sam_inference import Sam3Inference
 
-class LegoLabeler(QMainWindow):
-    def __init__(self, image_path):
-        super().__init__()
-        self.setWindowTitle(f"Lego Labeler - {os.path.basename(image_path)}")
-        self.resize(1400, 900)
+# --- Persistence ---
+DB_PATH = "labeler_app/processed.json"
 
-        self.image_path = image_path
+def load_processed():
+    if os.path.exists(DB_PATH):
+        try:
+            with open(DB_PATH, "r") as f:
+                content = f.read().strip()
+                if not content:
+                    return set()
+                return set(json.loads(content))
+        except (json.JSONDecodeError, ValueError):
+            return set()
+    return set()
+
+def save_processed(processed_set):
+    with open(DB_PATH, "w") as f:
+        json.dump(list(processed_set), f)
+
+# --- Background Worker ---
+class SamWorker(QThread):
+    result_ready = Signal(dict) # Contains {path, objects, w, h}
+    progress = Signal(str)
+
+    def __init__(self, image_paths):
+        super().__init__()
+        self.image_paths = image_paths
+        self.sam = None
+        self._is_running = True
+
+    def run(self):
         self.sam = Sam3Inference()
+        for path in self.image_paths:
+            if not self._is_running:
+                break
+            self.progress.emit(f"Processing {os.path.basename(path)}...")
+            try:
+                objects, w, h = self.sam.predict(path)
+                if not self._is_running:
+                    break
+                self.result_ready.emit({
+                    "path": path,
+                    "objects": objects,
+                    "w": w,
+                    "h": h
+                })
+            except Exception as e:
+                print(f"Error processing {path}: {e}")
+
+    def stop(self):
+        self._is_running = False
+
+class LegoLabeler(QMainWindow):
+    def __init__(self, all_images):
+        super().__init__()
+        self.setWindowTitle("Lego Labeler - Multi-Image Mode")
+        self.resize(1400, 950)
+
+        self.processed = load_processed()
+        self.pending_images = [p for p in all_images if p not in self.processed]
+        self.total_images = len(all_images)
         
-        # Data state
-        self.objects, self.img_w, self.img_h = self.sam.predict(image_path)
-        self.current_idx = 0
-        self.labels = {} # idx -> "minifigure" or "not_minifigure"
-        
+        # State for current image
+        self.current_data = None # {path, objects, w, h}
+        self.current_idx = 0     # object index within image
+        self.labels = {}         # idx -> label
+        self.queue = []          # Queue of processed data from worker
+
         self.setup_ui()
         
-        # Load main pixmap from oriented PIL image to match inference coordinates
-        image_pil = Image.open(self.image_path).convert("RGB")
-        image_pil = ImageOps.exif_transpose(image_pil)
-        self.main_pixmap = QPixmap.fromImage(self.pil_to_qimage(image_pil))
-        self.scene.addItem(QGraphicsPixmapItem(self.main_pixmap))
-        
-        # Highlight rectangle for current candidate
-        self.highlight_rect = QGraphicsRectItem()
-        self.highlight_rect.setPen(QPen(QColor(255, 0, 0), 4))
-        self.scene.addItem(self.highlight_rect)
-        
+        # Start Worker
+        self.worker = SamWorker(self.pending_images)
+        self.worker.result_ready.connect(self.on_data_ready)
+        self.worker.progress.connect(lambda msg: self.info_label.setText(f"Worker: {msg}"))
+        self.worker.start()
+
         self.setFocusPolicy(Qt.StrongFocus)
-        self.update_display()
-        self.view.fitInView(self.scene.itemsBoundingRect(), Qt.KeepAspectRatio)
 
     def setup_ui(self):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         main_layout = QHBoxLayout(central_widget)
 
-        # Left side: Full image context
+        # Left side
         left_layout = QVBoxLayout()
         self.scene = QGraphicsScene()
         self.view = QGraphicsView(self.scene)
         self.view.setMinimumWidth(800)
-        self.view.setFocusPolicy(Qt.NoFocus) # Prevent view from stealing key events
-        left_layout.addWidget(QLabel("Full Image Context (Box indicates current candidate)"))
+        self.view.setFocusPolicy(Qt.NoFocus)
+        left_layout.addWidget(QLabel("Full Image Context"))
         left_layout.addWidget(self.view)
+        
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setMaximum(self.total_images)
+        self.progress_bar.setValue(len(self.processed))
+        left_layout.addWidget(self.progress_bar)
         main_layout.addLayout(left_layout, 2)
 
-        # Right side: Crop and Info
+        # Right side
         right_layout = QVBoxLayout()
-        
-        # Crop View
-        right_layout.addWidget(QLabel("Current Candidate (Crop):"))
+        right_layout.addWidget(QLabel("Current Candidate:"))
         self.crop_label = QLabel()
         self.crop_label.setFixedSize(400, 400)
         self.crop_label.setFrameShape(QFrame.StyledPanel)
         self.crop_label.setAlignment(Qt.AlignCenter)
         right_layout.addWidget(self.crop_label)
 
-        # Info Panel
         info_frame = QFrame()
         info_frame.setFrameShape(QFrame.StyledPanel)
         info_layout = QVBoxLayout(info_frame)
-        
-        self.info_label = QLabel("Loading...")
-        self.stats_label = QLabel("Stats: ...")
-        self.controls_label = QLabel("Controls:\n[J] Minifigure\n[K] Not Minifigure\n[<- / ->] Navigate\n[Space] Save & Exit")
-        
+        self.info_label = QLabel("Waiting for SAM3...")
+        self.img_info_label = QLabel("")
+        self.stats_label = QLabel("")
         info_layout.addWidget(self.info_label)
+        info_layout.addWidget(self.img_info_label)
         info_layout.addWidget(self.stats_label)
-        info_layout.addWidget(self.controls_label)
+        info_layout.addWidget(QLabel("\n[J] Minifigure\n[K] Not Minifigure\n[<- / ->] Navigate"))
         
         right_layout.addWidget(info_frame)
         right_layout.addStretch()
-        
         main_layout.addLayout(right_layout, 1)
 
-    def update_display(self):
-        if not self.objects:
-            self.info_label.setText("No objects found!")
+        self.highlight_rect = None
+        self.main_pixmap_item = None
+
+    @Slot(dict)
+    def on_data_ready(self, data):
+        self.queue.append(data)
+        if self.current_data is None:
+            self.load_next_image_from_queue()
+
+    def load_next_image_from_queue(self):
+        if not self.queue:
+            self.current_data = None
+            self.info_label.setText("No more images in queue. Processing...")
             return
 
-        obj = self.objects[self.current_idx]
+        self.current_data = self.queue.pop(0)
         
-        # 1. Update Highlight Rect
+        # Auto-skip images with no objects
+        if not self.current_data["objects"]:
+            print(f"No objects found in {self.current_data['path']}. Logging and skipping.")
+            with open("labeler_app/problematic_images.txt", "a") as f:
+                f.write(self.current_data["path"] + "\n")
+            self.processed.add(self.current_data["path"])
+            save_processed(self.processed)
+            self.load_next_image_from_queue()
+            return
+
+        self.current_idx = 0
+        self.labels = {}
+        
+        # Load Main Image
+        image_pil = Image.open(self.current_data["path"]).convert("RGB")
+        image_pil = ImageOps.exif_transpose(image_pil)
+        qimg = self.pil_to_qimage(image_pil)
+        
+        self.scene.clear()
+        self.main_pixmap_item = QGraphicsPixmapItem(QPixmap.fromImage(qimg))
+        self.scene.addItem(self.main_pixmap_item)
+        
+        self.highlight_rect = QGraphicsRectItem()
+        self.highlight_rect.setPen(QPen(QColor(255, 0, 0), 4))
+        self.scene.addItem(self.highlight_rect)
+        
+        self.update_display()
+        self.view.fitInView(self.scene.itemsBoundingRect(), Qt.KeepAspectRatio)
+
+    def update_display(self):
+        if not self.current_data or not self.current_data["objects"]:
+            self.img_info_label.setText("No objects found in this image.")
+            return
+
+        obj = self.current_data["objects"][self.current_idx]
         box = obj["box"]
         self.highlight_rect.setRect(box[0], box[1], box[2]-box[0], box[3]-box[1])
 
-        # 2. Update Crop
         crop_pil = obj["white_bg_crop"]
         qimg = self.pil_to_qimage(crop_pil)
-        crop_pixmap = QPixmap.fromImage(qimg).scaled(400, 400, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-        self.crop_label.setPixmap(crop_pixmap)
+        self.crop_label.setPixmap(QPixmap.fromImage(qimg).scaled(400, 400, Qt.KeepAspectRatio))
 
-        # 3. Update Info
         status = self.labels.get(self.current_idx, "Unlabeled")
-        self.info_label.setText(f"Object {self.current_idx + 1} / {len(self.objects)}\nStatus: {status}")
+        self.img_info_label.setText(f"Image: {os.path.basename(self.current_data['path'])}\n"
+                                   f"Object: {self.current_idx + 1} / {len(self.current_data['objects'])}\n"
+                                   f"Status: {status}")
         
-        # Stats
-        mini_count = list(self.labels.values()).count("minifigure")
-        not_mini_count = list(self.labels.values()).count("not_minifigure")
-        self.stats_label.setText(f"Session:\nMinifigures: {mini_count}\nNot Minifigures: {not_mini_count}")
+        self.stats_label.setText(f"Total Processed: {len(self.processed)} / {self.total_images}")
+        self.progress_bar.setValue(len(self.processed))
 
     def pil_to_qimage(self, pil_img):
-        # Convert to RGB if needed
         if pil_img.mode != "RGB":
             pil_img = pil_img.convert("RGB")
-        
         data = pil_img.tobytes("raw", "RGB")
-        width, height = pil_img.size
-        bytes_per_line = 3 * width
-        # Use .copy() to ensure QImage owns the data and doesn't point to GC'd PIL buffer
-        return QImage(data, width, height, bytes_per_line, QImage.Format_RGB888).copy()
+        return QImage(data, pil_img.size[0], pil_img.size[1], 3 * pil_img.size[0], QImage.Format_RGB888).copy()
 
     def keyPressEvent(self, event: QKeyEvent):
+        if not self.current_data: return
+        
         key = event.key()
         if key == Qt.Key_J:
             self.labels[self.current_idx] = "minifigure"
@@ -131,60 +218,79 @@ class LegoLabeler(QMainWindow):
             self.labels[self.current_idx] = "not_minifigure"
             self.next_object()
         elif key == Qt.Key_Right:
-            self.next_object()
+            self.next_object(auto_next_img=False)
         elif key == Qt.Key_Left:
-            self.prev_object()
-        elif key == Qt.Key_Space:
-            self.save_dataset()
-            self.close()
+            if self.current_idx > 0:
+                self.current_idx -= 1
+                self.update_display()
 
-    def next_object(self):
-        if self.current_idx < len(self.objects) - 1:
+    def next_object(self, auto_next_img=True):
+        if self.current_idx < len(self.current_data["objects"]) - 1:
             self.current_idx += 1
             self.update_display()
-        else:
-            print("Reached last object. Press Space to save.")
+        elif auto_next_img:
+            self.finalize_current_image()
 
-    def prev_object(self):
-        if self.current_idx > 0:
-            self.current_idx -= 1
-            self.update_display()
+    def finalize_current_image(self):
+        self.save_current_results()
+        self.processed.add(self.current_data["path"])
+        save_processed(self.processed)
+        self.load_next_image_from_queue()
 
-    def save_dataset(self):
-        print("Saving results...")
-        base_name = os.path.basename(self.image_path)
-        name_no_ext = os.path.splitext(base_name)[0]
-        
-        # 1. Classification Crops
+    def save_current_results(self):
+        if not self.current_data:
+            return
+
+        path = self.current_data["path"]
+        name = os.path.splitext(os.path.basename(path))[0]
+        num_objs = len(self.current_data["objects"])
+
+        # Classification
         for idx, label in self.labels.items():
-            obj = self.objects[idx]
+            if idx >= num_objs: continue
+            obj = self.current_data["objects"][idx]
             folder = "minifigures" if label == "minifigure" else "not_minifigures"
-            save_path = f"labeler_app/datasets/classification/{folder}/{name_no_ext}_obj{idx}.jpg"
-            obj["white_bg_crop"].save(save_path)
-            
-        # 2. YOLO Dataset
-        yolo_labels = []
-        for idx, label in self.labels.items():
-            if label == "minifigure":
-                box = self.objects[idx]["normalized_box"]
-                # YOLO format: class xc yc w h (class 0 for minifigure)
-                yolo_labels.append(f"0 {box[0]} {box[1]} {box[2]} {box[3]}")
-        
-        if yolo_labels:
-            # Copy image
-            shutil.copy(self.image_path, f"labeler_app/datasets/yolo/images/{base_name}")
-            # Save labels
-            with open(f"labeler_app/datasets/yolo/labels/{name_no_ext}.txt", "w") as f:
-                f.write("\n".join(yolo_labels))
-                
-        print("Done!")
+            save_dir = f"labeler_app/datasets/classification/{folder}"
+            os.makedirs(save_dir, exist_ok=True)
+            obj["white_bg_crop"].save(f"{save_dir}/{name}_obj{idx}.jpg")
 
+        # YOLO
+        yolo_lines = []
+        for idx, label in self.labels.items():
+            if idx < num_objs and label == "minifigure":
+                b = self.current_data["objects"][idx]["normalized_box"]
+                yolo_lines.append(f"0 {b[0]} {b[1]} {b[2]} {b[3]}")
+
+        if yolo_lines:
+            img_save_dir = "labeler_app/datasets/yolo/images"
+            lbl_save_dir = "labeler_app/datasets/yolo/labels"
+            os.makedirs(img_save_dir, exist_ok=True)
+            os.makedirs(lbl_save_dir, exist_ok=True)
+
+            shutil.copy(path, f"{img_save_dir}/{os.path.basename(path)}")
+            with open(f"{lbl_save_dir}/{name}.txt", "w") as f:
+                f.write("\n".join(yolo_lines))
+
+    def closeEvent(self, event):
+        print("Closing application...")
+        if self.worker.isRunning():
+            self.worker.stop()
+            self.worker.quit()
+            self.worker.wait(2000) # Wait up to 2s
+            if self.worker.isRunning():
+                self.worker.terminate()
+        event.accept()
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    test_img = "/Users/yegor/lego-dataset/avito_parser/lego_full_images/ad_99_Lego минифигурки Серийки/photo_2.jpg"
-    if not os.path.exists(test_img):
-        print(f"Error: Test image not found at {test_img}")
-        sys.exit(1)
-    window = LegoLabeler(test_img)
+    
+    root_dir = "/Users/yegor/lego-dataset/avito_parser/lego_full_images"
+    all_imgs = []
+    for root, _, files in os.walk(root_dir):
+        for f in files:
+            if f.lower().endswith((".jpg", ".jpeg", ".png")):
+                all_imgs.append(os.path.join(root, f))
+    
+    all_imgs.sort()
+    window = LegoLabeler(all_imgs)
     window.show()
     sys.exit(app.exec())
