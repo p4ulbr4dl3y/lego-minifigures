@@ -25,21 +25,8 @@ class Sam3Inference:
         
         objects = []
         for i in range(len(result.scores)):
-            box = result.boxes[i]
             mask = result.masks[i]
             score = float(result.scores[i])
-            
-            # Округление для точного выравнивания по пикселям
-            x1, y1, x2, y2 = [int(round(x)) for x in box]
-            x1_c, y1_c = max(0, x1), max(0, y1)
-            x2_c, y2_c = min(W, x2), min(H, y2)
-            
-            # Проверка, что ширина и высота не менее 1
-            if x2_c <= x1_c or y2_c <= y1_c:
-                continue
-
-            crop_pil = image_pil.crop((x1_c, y1_c, x2_c, y2_c))
-            crop_np = np.array(crop_pil)
             
             # Приведение маски к размеру изображения
             mh, mw = mask.shape
@@ -49,13 +36,18 @@ class Sam3Inference:
             else:
                 mask_full = mask > 0
             
-            # Обрезка маски аналогично обрезке изображения
-            obj_mask = mask_full[y1_c:y2_c, x1_c:x2_c]
+            # Вычисление bbox по маске для более точного кропа
+            ys, xs = np.where(mask_full)
+            if len(ys) == 0:
+                continue
+            x1_c, y1_c = int(xs.min()), int(ys.min())
+            x2_c, y2_c = int(xs.max()) + 1, int(ys.max()) + 1
+
+            crop_pil = image_pil.crop((x1_c, y1_c, x2_c, y2_c))
+            crop_np = np.array(crop_pil)
             
-            # Финальная проверка совпадения размеров с обрезкой
-            ch, cw = crop_np.shape[:2]
-            if obj_mask.shape != (ch, cw):
-                obj_mask = np.array(Image.fromarray(obj_mask.astype(np.uint8) * 255).resize((cw, ch), resample=Image.NEAREST)) > 0
+            # Обрезка маски по bbox
+            obj_mask = mask_full[y1_c:y2_c, x1_c:x2_c]
             
             bg = np.ones_like(crop_np) * 255
             white_bg_crop_np = np.where(obj_mask[..., None], crop_np, bg)
