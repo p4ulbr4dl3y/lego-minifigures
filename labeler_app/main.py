@@ -2,8 +2,8 @@ import sys
 import os
 import shutil
 import json
-from queue import Queue
-from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
+from collections import deque
+from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QLabel, QGraphicsView, QGraphicsScene, 
                              QGraphicsPixmapItem, QGraphicsRectItem, QFrame, QProgressBar)
 from PySide6.QtGui import QPixmap, QImage, QKeyEvent, QColor, QPen
@@ -36,15 +36,21 @@ class SamWorker(QThread):
     result_ready = Signal(dict)  # Содержит {path, objects, w, h}
     progress = Signal(str)
 
-    def __init__(self, image_paths):
+    def __init__(self, image_paths, queue_ref):
         super().__init__()
         self.image_paths = image_paths
+        self.queue_ref = queue_ref
         self.sam = None
         self._is_running = True
 
     def run(self):
         self.sam = Sam3Inference()
         for path in self.image_paths:
+            if not self._is_running:
+                break
+            # Пауза, если очередь заполнена (backpressure)
+            while len(self.queue_ref) >= self.queue_ref.maxlen and self._is_running:
+                self.msleep(100)
             if not self._is_running:
                 break
             self.progress.emit(f"Обработка {os.path.basename(path)}...")
@@ -78,12 +84,12 @@ class LegoLabeler(QMainWindow):
         self.current_data = None  # {path, objects, w, h}
         self.current_idx = 0     # индекс объекта внутри изображения
         self.labels = {}         # idx -> метка
-        self.queue = []          # очередь обработанных данных из фонового потока
+        self.queue = deque(maxlen=5)  # очередь обработанных данных из фонового потока
 
         self.setup_ui()
         
         # Запуск фонового обработчика
-        self.worker = SamWorker(self.pending_images)
+        self.worker = SamWorker(self.pending_images, self.queue)
         self.worker.result_ready.connect(self.on_data_ready)
         self.worker.progress.connect(lambda msg: self.info_label.setText(f"Worker: {msg}"))
         self.worker.start()
@@ -149,7 +155,7 @@ class LegoLabeler(QMainWindow):
             self.info_label.setText("Очередь пуста. Обработка...")
             return
 
-        self.current_data = self.queue.pop(0)
+        self.current_data = self.queue.popleft()
         
         # Автоматический пропуск изображений без объектов
         if not self.current_data["objects"]:
@@ -274,11 +280,14 @@ class LegoLabeler(QMainWindow):
     def closeEvent(self, event):
         print("Завершение работы приложения...")
         if self.worker.isRunning():
+            self.worker.result_ready.disconnect()
+            self.worker.progress.disconnect()
             self.worker.stop()
             self.worker.quit()
-            self.worker.wait(2000)  # Ожидание до 2 секунд
-            if self.worker.isRunning():
+            if not self.worker.wait(10000):
+                print("Воркер не завершился за 10 секунд, принудительное завершение")
                 self.worker.terminate()
+                self.worker.wait()
         event.accept()
 if __name__ == "__main__":
     app = QApplication(sys.argv)

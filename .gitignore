@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# Data & models
+*.pth
+*.pt
+*.onnx
+labeler_app/datasets/
+labeler_app/processed.json
+labeler_app/problematic_images.txt
+prepared_dataset/
+avito_parser/lego_full_images/
+
+# Large files
+*.jpg
+*.jpeg
+*.png
+*.html
